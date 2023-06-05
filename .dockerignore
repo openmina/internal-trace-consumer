@@ -10,3 +10,6 @@
 **/build.Dockerfile
 **/.dockerignore
 **/.gitignore
+**/output
+**/keys
+**/credentials
