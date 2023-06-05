@@ -1,0 +1,40 @@
+version: '2'
+services:
+  internal-log-fetcher:
+    image: openmina/mina-internal-trace-consumer:ee27066
+    # image: local/mina-internal-trace-consumer
+    container_name: internal-log-fetcher
+    restart: always
+    command: "fetcher -k /keys/secret_key -o /output discovery"
+    ports:
+      - 4000:4000
+      - 11000-11100:11000-11100
+    volumes:
+      - ./credentials:/credentials
+      - ./keys:/keys
+      - ./output:/output
+    environment:
+      GOOGLE_BUCKET: uptime-itn-test
+      GOOGLE_SERVICE_ACCOUNT: /credentials/creds
+      INTERNAL_TRACE_CONSUMER_EXE: /internal_trace_consumer
+    networks:
+      - internal-log-fetcher-network
+    
+  frontend:
+    image: directcuteo/mina-frontend:a3c4404
+    container_name: frontend
+    restart: always
+    ports:
+      - 4001:80
+    command:
+      - sh
+      - -ce
+      - |
+        ENV=$(cat /fe-config.json | tr -d '\n' | tr -s ' ' | sed -e 's/ //g') envsubst < /usr/share/nginx/html/assets/env.template.js > /usr/share/nginx/html/assets/env.js
+        exec nginx -g 'daemon off;'
+    volumes:
+      - ./fe-config.json:/fe-config.json
+    networks:
+      - internal-log-fetcher-network
+networks:
+  internal-log-fetcher-network:
