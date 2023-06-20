@@ -1,14 +1,14 @@
 version: '2'
 services:
   internal-log-fetcher:
-    image: openmina/mina-internal-trace-consumer:ee27066
+    image: openmina/mina-internal-trace-consumer:7a6b590
     # image: local/mina-internal-trace-consumer
     container_name: internal-log-fetcher
     restart: always
     command: "fetcher -k /keys/secret_key -o /output discovery"
     ports:
       - 4000:4000
-      - 11000-11100:11000-11100
+      - 11000-11300:11000-11300
     volumes:
       - ./credentials:/credentials
       - ./keys:/keys
@@ -19,13 +19,13 @@ services:
       INTERNAL_TRACE_CONSUMER_EXE: /internal_trace_consumer
     networks:
       - internal-log-fetcher-network
-    
+
   frontend:
-    image: directcuteo/mina-frontend:a3c4404
+    image: directcuteo/mina-frontend:a6501b1
     container_name: frontend
     restart: always
     ports:
-      - 4001:80
+      - 80:80
     command:
       - sh
       - -ce
