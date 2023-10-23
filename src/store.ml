@@ -334,7 +334,7 @@ module Q = struct
     in
     let rep =
       Caqti_type.(
-        tup3 (tup3 float float float) (tup4 string int int string) string )
+        tup3 (tup3 float float float) (tup4 string int int string) string)
     in
     custom ~encode ~decode rep
 
@@ -366,7 +366,7 @@ module Q = struct
     in
     let rep =
       Caqti_type.(
-        tup4 string (tup4 string int int string) (tup2 float float) string )
+        tup4 string (tup4 string int int string) (tup2 float float) string)
     in
     custom ~encode ~decode rep
 
@@ -394,7 +394,8 @@ module Q = struct
         | "P" ->
             `Prover
         | _ ->
-            `Main (* TODO print warning *)
+            `Main
+        (* TODO print warning *)
       in
       (* TODO: print warning on metadata decoding failure or fail row decoding *)
       let checkpoint =
@@ -415,9 +416,9 @@ module Q = struct
     let primary_key_int, json_type =
       match engine with
       | `Sqlite ->
-          "integer PRIMARY KEY AUTOINCREMENT", "text"
+          ("integer PRIMARY KEY AUTOINCREMENT", "text")
       | `Postgres ->
-          "SERIAL PRIMARY KEY", "jsonb"
+          ("SERIAL PRIMARY KEY", "jsonb")
     in
     [ (unit ->. unit)
       @@ sprintf
@@ -466,6 +467,7 @@ module Q = struct
           started_at float NOT NULL,
           metadata_json %s,
           call_id int NOT NULL,
+          gossip bool not null default false,
 
           FOREIGN KEY (block_trace_id) REFERENCES block_trace(block_trace_id)
         )
@@ -473,13 +475,9 @@ module Q = struct
            primary_key_int json_type
     ; (unit ->. unit)
         {eos|
-        CREATE INDEX IF NOT EXISTS block_trace_checkpoint_source_idx
-        ON block_trace_checkpoint (source)
-      |eos}
-    ; (unit ->. unit)
-        {eos|
-        CREATE INDEX IF NOT EXISTS block_trace_checkpoint_main_trace_idx
-        ON block_trace_checkpoint (main_trace)
+        CREATE INDEX IF NOT EXISTS block_trace_checkpoint_block_trace_id_main_trace_gossip
+        ON block_trace_checkpoint
+        (block_trace_id, main_trace) WHERE (NOT gossip)
       |eos}
     ; (unit ->. unit)
         {eos|
@@ -568,6 +566,7 @@ module Q = struct
       |eos}
 
   let base_block_traces_query =
+    (* TODO use window function instead of INNER JOIN *)
     sprintf
       {eos|
       SELECT
@@ -688,7 +687,7 @@ module Q = struct
           source, call_id, is_control, name, started_at,
           CAST(metadata_json AS text) metadata_json
         FROM block_trace_checkpoint
-        WHERE block_trace_id = ? AND main_trace = ?
+        WHERE block_trace_id = ? AND main_trace = ? AND NOT gossip
         ORDER BY block_trace_checkpoint_id ASC
       |eos}
 
@@ -882,6 +881,6 @@ module Testing = struct
            | Ok pool ->
                pool
          in
-         Connection_context.Db.set pool ;
+         Connection_context.Db.set `Sqlite pool ;
          test_db () >>= report_error )
 end
